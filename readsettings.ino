@@ -1,145 +1,114 @@
-#include <SD.h>
-#include <ctype.h>
-File myFile;
-struct parameters {
-  int interval;
-  boolean co2;
-  boolean temp;
-  boolean rh;
-  boolean lux;
-  boolean valid;
-  boolean heater;
-  String lokaal;
-} settings;
-// Setting for SD-card reader
-const int chipSelect = 10;
-void getSettings()
+File    confFile;
+char    confChar;
+
+boolean getSettings()
 {
  // Open the settings file for reading:
-  myFile = SD.open("settings.txt");
-  char character;
-  String description = "";
-  String value = "";
-  boolean valid = true;
-    // read from the file until there's nothing else in it:
-    while (myFile.available()) {
-      character = myFile.read();
-             if(character == '/')         {
-               // Comment - ignore this line
-               while(character != '\n'){
-                 character = myFile.read();
-               };
-      } else if(isalnum(character))      {  // Add a character to the description
-        description.concat(character);
-      } else if(character =='=')         {  // start checking the value for possible results
+  String  description = "";
+
+  confFile = SD.open("settings.txt");
+  if (!confFile) {
+    return false;
+  }
+
+  // read from the file until there's nothing else in it:
+  while (confFile.available()) {
+    confChar = confFile.read();
+
+    if (confChar == '#')           { // Comment - ignore this line
+      skipLine();
+
+    } else if (isalnum(confChar))  { // Add a confChar to th e description
+      description.concat(confChar);
+
+    } else if (confChar =='=')     { // start checking the value for possible results
+
       // First going to trim out all trailing white spaces
       do {
-        character = myFile.read();
-      } while(character == ' ');
-        if(description == "interval") {
-          value = "";
-          while(character != '\n') {
-            if(isdigit(character)) {
-              value.concat(character);
-            } else if(character != '\n') {
-              // Use of invalid values
-              valid = false;
-            }
-            character = myFile.read();            
-          };
-          if (valid) { 
-            // Convert string to array of chars
-            char charBuf[value.length()+1];
-            value.toCharArray(charBuf,value.length()+1);
-            // Convert chars to integer
-            settings.interval = atoi(charBuf);
-          } else {
-            // revert to default value for invalid entry in settings
-            settings.interval = 60;
-          }
-        } else if(description == "co2") {
-           if (character=='1') {
-             settings.co2 = true;
-           } else {
-             settings.co2 = false;
-           }
-        } else if(description == "rh") {
-           if (character=='1') {
-             settings.rh = true;
-           } else {
-             settings.rh = false;
-           }        
-        } else if(description == "temp") {
-           if (character=='1') {
-             settings.temp = true;
-           } else {
-             settings.temp = false;
-           }
-        } else if(description == "lux") {
-           if (character=='1') {
-             settings.lux = true;
-           } else {
-             settings.lux = false;
-           }        
-        } else if(description == "heater") {
-           if (character=='1') {
-             settings.heater = true;
-           } else {
-             settings.heater = false;
-           }        
-        } else if(description == "location") {
-           value = "";
-           do {
-             value.concat(character);
-             character = myFile.read();
-           } while(character != '\n');
-           settings.lokaal = value;
-        
-        }else { // unknown parameter
-          while(character != '\n')
-          character = myFile.read();
-        }
-        description = "";
-      } else {
-        // Ignore this character (could be space, tab, newline, carriage return or something else)
+        confChar = confFile.read();
+      } while(confChar == ' ');
+
+      // Property list
+      if (description == "intValue") {
+        settings.intValue = getIntSetting(DEFAULT_INT_VALUE);
+
+      } else if (description == "boolValue") {
+        settings.boolValue = getBoolSetting(DEFAULT_BOOL_VALUE);
+
+      } else if (description == "stringValue") {
+        settings.stringValue = getStringSetting(DEFAULT_STRING_VALUE);
+
+      } else { // Unknown parameter - ignore this line
+        skipLine();
       }
-    
+
+      description = "";
+
+    } else {
+      // Ignore this confChar (could be space, tab, newline, carriage return or something else)
     }
-    // close the file:
-    myFile.close();
-}
-void setup()
-{
- // Open serial communications and wait for port to open:
-  Serial.begin(9600);
-   while (!Serial) {
-    ; // wait for serial port to connect. Needed for Leonardo only
   }
-  Serial.println("Starting...");
-  pinMode(10, OUTPUT);
-  
-  if (!SD.begin(chipSelect)) {
-    Serial.println("initialization failed!");
-    return;
-  }
-  getSettings();
-  Serial.print("Interval: ");
-  Serial.println(settings.interval);
-  Serial.print("CO2: ");
-  if(settings.co2) { Serial.println("YES"); } else { Serial.println("NO"); }
-  Serial.print("TEMP:");
-  if(settings.temp) { Serial.println("YES"); } else { Serial.println("NO"); }
-  Serial.print("RH:  ");
-  if(settings.rh) { Serial.println("YES"); } else { Serial.println("NO"); }
-  Serial.print("lux: ");
-  if(settings.lux) { Serial.println("YES"); } else { Serial.println("NO"); }
-  Serial.print("htr: ");
-  if(settings.heater) { Serial.println("YES"); } else { Serial.println("NO"); }
-  Serial.print("Lokaal: ");
-  Serial.println(settings.lokaal);
-  
+  // close the file:
+  confFile.close();
+
+  return true;
 }
-void loop()
+
+void skipLine()
 {
-	// nothing happens after setup
+  do {
+    confChar = confFile.read();
+  } while (confChar != '\n');
+}
+
+int getIntSetting(int defaultValue)
+{
+  String  value = "";
+  boolean valid = true;
+
+  while (confChar != '\n') {
+    if (isdigit(confChar) || confChar == '-') {
+      value.concat(confChar);
+    } else if (confChar != '\n') { // Use of invalid values
+      valid = false;
+    }
+    confChar = confFile.read();            
+  }
+  
+  if (valid) { 
+    // Convert string to integer
+    char charBuf[value.length()+1];
+    value.toCharArray(charBuf,value.length()+1);
+    return atoi(charBuf);
+  } else {
+    // revert to default value for invalid entry in settings
+    return defaultValue;
+  }
+}
+
+bool getBoolSetting(bool defaultValue)
+{
+  if (confChar == '1') {
+    return true;
+  } else if (confChar == '0') {
+    return false;
+  } else {
+    return defaultValue;
+  }
+}
+
+String getStringSetting(String defaultValue)
+{
+  String value = "";
+  do {
+    value.concat(confChar);
+    confChar = confFile.read();
+  } while(confChar != '\n');
+  
+  if (value != "") {
+    return value;
+  } else {
+    return defaultValue;
+  }
+
 }

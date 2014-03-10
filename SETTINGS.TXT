@@ -1,25 +1,12 @@
-// Any line starting with one forward slash will be considered comment.
-// So the typical // will also serve as a comment.
+# Any line starting with one number sign will be considered comment.
+# This file should end with with a newline.
 
-// Measure CO2-level
-co2 = 1
+# int value
+intValue = -32768
 
-// Don't measure relative humidity
-rh = 0
+# bool value (1:true 0:false)
+boolValue = 0
 
-// Measure temperature
-temp = 1
+# string value
+stringValue = foobar
 
-// Don't measure light strenght
-lux = 0
-
-// Don't pre-heat module
-heater = 0
-
-// Location identifier
-location = Bathroom
-
-// Other parameters are unknown and will be ignored
-xrayvision = 1
-evilcommand = 0
-myname = jurgen
