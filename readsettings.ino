@@ -6,7 +6,7 @@ boolean getSettings()
  // Open the settings file for reading:
   String  description = "";
 
-  confFile = SD.open("settings.txt");
+  confFile = SD.open("SETTINGS.TXT");
   if (!confFile) {
     return false;
   }

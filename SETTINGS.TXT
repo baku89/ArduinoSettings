@@ -2,10 +2,10 @@
 # This file should end with with a newline.
 
 # int value
-intValue = -32768
+intValue = -128
 
 # bool value (1:true 0:false)
-boolValue = 0
+boolValue = 1
 
 # string value
 stringValue = foobar
